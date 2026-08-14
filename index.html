@@ -413,7 +413,7 @@ function checkGate(){
   if(v === ACCESS_PASSWORD){ localStorage.setItem("gvrun_unlocked","1"); boot(); }
   else { document.getElementById("gateErr").style.display="block"; }
 }
-function unlocked(){ return !ACCESS_PASSWORD || localStorage.getItem("gvrun_unlocked")==="1" }
+function unlocked(){ return true; }  // login agora é por e-mail (GVCloud), senha desativada}
 
 /* ================= ASSESSMENT UI (bilateral + LSI) ================= */
 let timers = {}; // {id_side: {t0, acc, running, int}}
