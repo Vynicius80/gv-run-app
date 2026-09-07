@@ -113,7 +113,7 @@ tbody tr:hover{background:rgba(87,160,255,.06)}
 <script>
 const SUPABASE_URL = 'https://kzgdlsstrffiubzkvqeo.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Z2Rsc3N0cmZmaXViemt2cWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTk1NjksImV4cCI6MjEwMDU3NTU2OX0._1O1PSe94zPmtqfwc0PxpcMTf0Fl02QIgIAbAzaMmu4';
-const ADMIN_PASSWORD = '220894';
+const ADMIN_PASSWORD = 'TROQUE_ESTA_SENHA';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -156,13 +156,27 @@ function fmtDate(iso){
 
 async function loadDashboard(){
   document.getElementById('loadedAt').textContent = 'Carregando...';
-  const [{data: allowed}, {data: progress}, {data: anam}, {data: pain}, {data: risk}] = await Promise.all([
+  const results = await Promise.all([
     sb.from('allowed_emails').select('email'),
     sb.from('user_progress').select('email, data, updated_at'),
     sb.from('athlete_anamnesis').select('*'),
     sb.from('pain_records').select('email, body_region, body_side, intensity, trend, created_at').order('created_at',{ascending:true}),
     sb.from('risk_events').select('email, nivel, created_at').order('created_at',{ascending:true})
   ]);
+  const [allowedRes, progressRes, anamRes, painRes, riskRes] = results;
+
+  const erros = results.filter(r => r.error).map(r => r.error.message);
+  if (erros.length) {
+    console.error('Erros ao carregar dados do Supabase:', erros);
+    document.getElementById('loadedAt').textContent = 'Erro ao carregar';
+    document.getElementById('tbody').innerHTML = '';
+    document.getElementById('emptyState').classList.remove('hidden');
+    document.getElementById('emptyState').innerHTML =
+      '⚠️ Não consegui carregar os dados.<br><span style="font-size:12px">' + erros.join('<br>') + '</span>';
+    return;
+  }
+
+  const allowed = allowedRes.data, progress = progressRes.data, anam = anamRes.data, pain = painRes.data, risk = riskRes.data;
 
   const progressByEmail = {}; (progress||[]).forEach(p => progressByEmail[p.email]=p);
   const anamByEmail = {}; (anam||[]).forEach(a => anamByEmail[a.email]=a);
