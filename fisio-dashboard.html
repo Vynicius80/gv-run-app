@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GV Run · Painel do Fisioterapeuta</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --navy:#0A1730; --navy2:#101F3C; --deep:#16305E; --blue:#2E6FDB; --sky:#57A0FF;
+  --ice:#EAF2FF; --card:#13223F; --line:rgba(87,160,255,.18);
+  --txt:#EAF2FF; --mut:#8FA6C9; --green:#2FA36B; --amber:#E3A008; --red:#D64545;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:linear-gradient(180deg,var(--navy),var(--navy2));
+  color:var(--txt);min-height:100vh}
+.hidden{display:none!important}
+
+/* gate */
+#vGate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.gatecard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px;max-width:360px;width:100%}
+.gatecard h1{font-size:20px;margin-bottom:6px}
+.gatecard p{font-size:13.5px;color:var(--mut);margin-bottom:18px}
+input[type=password]{width:100%;background:var(--navy);border:1.5px solid var(--line);border-radius:12px;padding:14px;color:var(--txt);font-size:16px}
+.err{color:#F0A0A0;font-size:13px;margin-top:8px;display:none}
+.btn{display:block;width:100%;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;color:#fff;
+  background:linear-gradient(90deg,var(--blue),var(--sky));cursor:pointer;margin-top:16px}
+
+/* layout */
+header{padding:18px 22px;background:linear-gradient(90deg,var(--navy),var(--deep));border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+header h1{font-size:18px}
+header .sub{font-size:11px;color:var(--sky);letter-spacing:1px;text-transform:uppercase;font-weight:700}
+.wrap{max-width:1100px;margin:0 auto;padding:20px}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.filters button{border:1.5px solid var(--line);background:var(--card);color:var(--mut);border-radius:99px;
+  padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.filters button.on{background:linear-gradient(135deg,var(--blue),var(--sky));border-color:transparent;color:#fff}
+.filters button .n{opacity:.75;margin-left:4px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+.stat .v{font-size:26px;font-weight:800}
+.stat .k{font-size:11px;color:var(--mut);font-weight:700;margin-top:2px}
+
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+thead{background:var(--navy2)}
+th{text-align:left;padding:12px 14px;font-size:11px;color:var(--sky);letter-spacing:.5px;text-transform:uppercase}
+td{padding:13px 14px;font-size:13.5px;border-top:1px solid rgba(255,255,255,.06)}
+tbody tr{cursor:pointer;transition:background .12s}
+tbody tr:hover{background:rgba(87,160,255,.06)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.dot.g{background:var(--green)} .dot.y{background:var(--amber)} .dot.r{background:var(--red)} .dot.n{background:var(--mut)}
+.flag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;margin-left:6px}
+.flag.streak{background:rgba(214,69,69,.2);color:#F0A0A0}
+.flag.recorr{background:rgba(227,160,8,.2);color:#F3DFAE}
+.empty{text-align:center;padding:50px 20px;color:var(--mut)}
+
+/* detail overlay */
+#detailOverlay{position:fixed;inset:0;background:var(--navy);z-index:50;overflow-y:auto;display:none}
+#detailOverlay.open{display:block}
+.dt-header{padding:16px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;
+  background:linear-gradient(90deg,var(--navy),var(--deep));border-bottom:1px solid var(--line);z-index:2}
+.dt-close{background:none;border:none;color:var(--sky);font-size:22px;cursor:pointer}
+.dt-wrap{max-width:800px;margin:0 auto;padding:22px}
+.dt-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.dt-card h3{font-size:15px;color:var(--sky);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.dt-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13.5px}
+.dt-row:last-child{border:none}
+.dt-row .k{color:var(--mut)}
+.dt-row .v{font-weight:700;text-align:right}
+.dt-loglist{font-size:12.5px;color:var(--mut);line-height:2}
+</style>
+</head>
+<body>
+
+<div id="vGate">
+  <div class="gatecard">
+    <h1>Painel do Fisioterapeuta</h1>
+    <p>Acesso restrito à equipe GV Run.</p>
+    <input type="password" id="inGate" placeholder="Senha de acesso">
+    <div class="err" id="gateErr">Senha incorreta.</div>
+    <button class="btn" onclick="checkGate()">Entrar</button>
+  </div>
+</div>
+
+<div id="vDash" class="hidden">
+  <header>
+    <div><div class="sub">GV Run</div><h1>Painel do Fisioterapeuta</h1></div>
+    <div id="loadedAt" style="font-size:11px;color:var(--mut)"></div>
+  </header>
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+    <div class="filters" id="filters"></div>
+    <table>
+      <thead><tr><th>Aluno</th><th>Semáforo</th><th>Última atividade</th><th>Aderência 7d</th><th>Alertas</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty hidden" id="emptyState">Nenhum aluno encontrado para este filtro.</div>
+  </div>
+</div>
+
+<div id="detailOverlay">
+  <div class="dt-header">
+    <button class="dt-close" onclick="closeDetail()">←</button>
+    <h2 id="dtName">Aluno</h2>
+  </div>
+  <div class="dt-wrap" id="dtBody"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kzgdlsstrffiubzkvqeo.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Z2Rsc3N0cmZmaXViemt2cWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTk1NjksImV4cCI6MjEwMDU3NTU2OX0._1O1PSe94zPmtqfwc0PxpcMTf0Fl02QIgIAbAzaMmu4';
+const ADMIN_PASSWORD = '220894';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+function checkGate(){
+  const v = document.getElementById('inGate').value;
+  if(v === ADMIN_PASSWORD){
+    sessionStorage.setItem('gv_fisio_ok','1');
+    document.getElementById('vGate').classList.add('hidden');
+    document.getElementById('vDash').classList.remove('hidden');
+    loadDashboard();
+  } else {
+    document.getElementById('gateErr').style.display = 'block';
+  }
+}
+document.getElementById('inGate').addEventListener('keydown', e => { if(e.key==='Enter') checkGate(); });
+if(sessionStorage.getItem('gv_fisio_ok')==='1'){
+  document.getElementById('vGate').classList.add('hidden');
+  document.getElementById('vDash').classList.remove('hidden');
+  window.addEventListener('DOMContentLoaded', loadDashboard);
+}
+
+const NIVEL_ORDER = { verde:0, amarelo:1, vermelho:2 };
+let athletes = [];
+let currentFilter = 'todos';
+
+function weekFromStart(startStr){
+  if(!startStr) return null;
+  const days = Math.floor((new Date() - new Date(startStr)) / 864e5);
+  return Math.min(8, Math.max(1, Math.floor(days/7)+1));
+}
+function daysAgo(dateStr){
+  if(!dateStr) return Infinity;
+  return Math.floor((new Date() - new Date(dateStr)) / 864e5);
+}
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR');
+}
+
+async function loadDashboard(){
+  document.getElementById('loadedAt').textContent = 'Carregando...';
+  const [{data: allowed}, {data: progress}, {data: anam}, {data: pain}, {data: risk}] = await Promise.all([
+    sb.from('allowed_emails').select('email'),
+    sb.from('user_progress').select('email, data, updated_at'),
+    sb.from('athlete_anamnesis').select('*'),
+    sb.from('pain_records').select('email, body_region, body_side, intensity, trend, created_at').order('created_at',{ascending:true}),
+    sb.from('risk_events').select('email, nivel, created_at').order('created_at',{ascending:true})
+  ]);
+
+  const progressByEmail = {}; (progress||[]).forEach(p => progressByEmail[p.email]=p);
+  const anamByEmail = {}; (anam||[]).forEach(a => anamByEmail[a.email]=a);
+  const painByEmail = {}; (pain||[]).forEach(p => (painByEmail[p.email]=painByEmail[p.email]||[]).push(p));
+  const riskByEmail = {}; (risk||[]).forEach(r => (riskByEmail[r.email]=riskByEmail[r.email]||[]).push(r));
+
+  athletes = (allowed||[]).map(a => {
+    const email = a.email;
+    const prog = progressByEmail[email];
+    const S = prog ? prog.data : null;
+    const name = (S && S.name) || email;
+    const sessions = (S && S.sessions) || [];
+    const lastSession = sessions.length ? sessions.reduce((max,s)=> (!max || s.d>max) ? s.d : max, null) : null;
+    const week = S ? weekFromStart(S.start) : null;
+
+    const riskList = riskByEmail[email] || [];
+    let semaforo = 'sem_registro';
+    if(riskList.length){
+      semaforo = riskList[riskList.length-1].nivel;
+    } else if(S && S.pain && S.pain.length){
+      const c = S.pain[S.pain.length-1].c;
+      semaforo = c==='g'?'verde':c==='y'?'amarelo':'vermelho';
+    }
+    const last3 = riskList.slice(-3);
+    const streakVermelho = last3.length===3 && last3.every(r=>r.nivel==='vermelho');
+
+    const painList = painByEmail[email] || [];
+    const painGroups = {};
+    painList.forEach(p => {
+      const k = p.body_region+'|'+(p.body_side||'');
+      painGroups[k]=(painGroups[k]||0)+1;
+    });
+    const maxPainCount = Math.max(0, ...Object.values(painGroups));
+    const dorRecorrente = painList.length>=4 && maxPainCount >= Math.max(5, Math.ceil(painList.length*0.5));
+
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+    const sessions7d = sessions.filter(s => new Date(s.d) >= sevenDaysAgo).length;
+    const aderencia = Math.min(100, Math.round((sessions7d/4)*100)); // ~4 sessões esperadas por semana (diário à parte)
+
+    const semRegistro7d = daysAgo(lastSession) > 7;
+
+    return {
+      email, name, week, lastSession, semaforo, streakVermelho, dorRecorrente,
+      aderencia, semRegistro7d, anamnesis: anamByEmail[email]||null,
+      painList, riskList, sessions, S
+    };
+  }).sort((a,b) => (NIVEL_ORDER[b.semaforo]??-1) - (NIVEL_ORDER[a.semaforo]??-1));
+
+  renderStats();
+  renderFilters();
+  renderTable();
+  document.getElementById('loadedAt').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+function renderStats(){
+  const total = athletes.length;
+  const alto = athletes.filter(a=>a.semaforo==='vermelho'||a.streakVermelho).length;
+  const atencao = athletes.filter(a=>a.semaforo==='amarelo').length;
+  const semReg = athletes.filter(a=>a.semRegistro7d).length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="v">${total}</div><div class="k">ALUNOS ATIVOS</div></div>
+    <div class="stat"><div class="v" style="color:var(--red)">${alto}</div><div class="k">ALTO RISCO</div></div>
+    <div class="stat"><div class="v" style="color:var(--amber)">${atencao}</div><div class="k">ATENÇÃO</div></div>
+    <div class="stat"><div class="v" style="color:var(--mut)">${semReg}</div><div class="k">SEM REGISTRO 7D</div></div>`;
+}
+
+const FILTERS = [
+  ['todos','Todos', a=>true],
+  ['risco', 'Alto risco', a=>a.semaforo==='vermelho'||a.streakVermelho],
+  ['atencao','Atenção', a=>a.semaforo==='amarelo'],
+  ['recorrente','Dor recorrente', a=>a.dorRecorrente],
+  ['sem_registro','Sem registro 7d', a=>a.semRegistro7d]
+];
+function renderFilters(){
+  document.getElementById('filters').innerHTML = FILTERS.map(([key,label,fn]) => {
+    const n = athletes.filter(fn).length;
+    return `<button class="${key===currentFilter?'on':''}" onclick="setFilter('${key}')">${label}<span class="n">${n}</span></button>`;
+  }).join('');
+}
+window.setFilter = function(key){ currentFilter = key; renderFilters(); renderTable(); };
+
+function renderTable(){
+  const fn = FILTERS.find(f=>f[0]===currentFilter)[2];
+  const list = athletes.filter(fn);
+  const tbody = document.getElementById('tbody');
+  document.getElementById('emptyState').classList.toggle('hidden', list.length>0);
+  tbody.innerHTML = list.map((a,i) => {
+    const dotClass = a.semaforo==='verde'?'g':a.semaforo==='amarelo'?'y':a.semaforo==='vermelho'?'r':'n';
+    const flags = (a.streakVermelho?'<span class="flag streak">3 vermelhos</span>':'') +
+                  (a.dorRecorrente?'<span class="flag recorr">dor recorrente</span>':'');
+    return `<tr onclick="openDetail(${athletes.indexOf(a)})">
+      <td><b>${a.name}</b><br><span style="color:var(--mut);font-size:11.5px">${a.email}${a.week?' · semana '+a.week+'/8':''}</span></td>
+      <td><span class="dot ${dotClass}"></span>${a.semaforo.replace('_',' ')}</td>
+      <td>${fmtDate(a.lastSession)}</td>
+      <td>${a.aderencia}%</td>
+      <td>${flags||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+window.openDetail = function(idx){
+  const a = athletes[idx];
+  document.getElementById('dtName').textContent = a.name;
+  const an = a.anamnesis;
+  const recentPain = a.painList.slice(-8).reverse();
+  const recentRisk = a.riskList.slice(-10).reverse();
+  const recentSessions = a.sessions.slice(-8).reverse();
+
+  document.getElementById('dtBody').innerHTML = `
+    <div class="dt-card"><h3>Resumo</h3>
+      <div class="dt-row"><span class="k">E-mail</span><span class="v">${a.email}</span></div>
+      <div class="dt-row"><span class="k">Semana do programa</span><span class="v">${a.week?a.week+' de 8':'—'}</span></div>
+      <div class="dt-row"><span class="k">Última atividade</span><span class="v">${fmtDate(a.lastSession)}</span></div>
+      <div class="dt-row"><span class="k">Aderência (7 dias)</span><span class="v">${a.aderencia}%</span></div>
+    </div>
+    <div class="dt-card"><h3>Anamnese</h3>
+      ${an ? `
+        <div class="dt-row"><span class="k">Tempo correndo</span><span class="v">${an.tempo_correndo||'—'}</span></div>
+        <div class="dt-row"><span class="k">Frequência semanal</span><span class="v">${an.freq_semanal||'—'}x</span></div>
+        <div class="dt-row"><span class="k">Participa de provas</span><span class="v">${an.participa_provas?'Sim':'Não'}</span></div>
+        <div class="dt-row"><span class="k">Histórico de lesão</span><span class="v">${an.teve_lesao?'Sim':'Não'}</span></div>
+        ${an.lesoes_previas && an.lesoes_previas[0] ? `<div class="dt-row"><span class="k">Lesão relatada</span><span class="v">${an.lesoes_previas[0].regiao||'—'}</span></div>` : ''}
+        <div class="dt-row"><span class="k">Dor atual (na anamnese)</span><span class="v">${an.dor_atual?'Sim':'Não'}</span></div>
+        <div class="dt-row"><span class="k">Fazendo fisioterapia</span><span class="v">${an.fazendo_fisio?'Sim':'Não'}</span></div>
+      ` : `<p style="color:var(--mut);font-size:13px">Ainda não respondeu a anamnese.</p>`}
+    </div>
+    <div class="dt-card"><h3>Registros de dor recentes</h3>
+      ${recentPain.length ? `<div class="dt-loglist">${recentPain.map(p=>
+        `${fmtDate(p.created_at)} — ${p.body_region}${p.body_side?' '+p.body_side:''} · ${p.intensity}/10 · ${p.trend||''}`
+      ).join('<br>')}</div>` : `<p style="color:var(--mut);font-size:13px">Nenhum registro no mapa de dor ainda.</p>`}
+    </div>
+    <div class="dt-card"><h3>Semáforo — últimos eventos</h3>
+      ${recentRisk.length ? `<div class="dt-loglist">${recentRisk.map(r=>
+        `${fmtDate(r.created_at)} — <span class="dot ${r.nivel==='verde'?'g':r.nivel==='amarelo'?'y':'r'}"></span>${r.nivel}`
+      ).join('<br>')}</div>` : `<p style="color:var(--mut);font-size:13px">Nenhum evento registrado ainda.</p>`}
+    </div>
+    <div class="dt-card"><h3>Sessões recentes</h3>
+      ${recentSessions.length ? `<div class="dt-loglist">${recentSessions.map(s=>
+        `${fmtDate(s.d)} — ${s.t==='M'?'Mobilidade':s.t==='B'?'Controle':'Força'} · ${s.done}/${s.total}`
+      ).join('<br>')}</div>` : `<p style="color:var(--mut);font-size:13px">Nenhuma sessão registrada ainda.</p>`}
+    </div>`;
+  document.getElementById('detailOverlay').classList.add('open');
+};
+window.closeDetail = function(){ document.getElementById('detailOverlay').classList.remove('open'); };
+</script>
+</body>
+</html>
