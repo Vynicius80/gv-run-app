@@ -676,11 +676,27 @@ async function resetAll(){
       }
     }
   }catch(e){ console.error("Falha ao apagar na nuvem:", e); }
-  // 2) limpa o cache local e recomeça
-  //    (um respiro antes do reload, para as exclusões acima terminarem de sair)
-  try{ localStorage.removeItem(KEY); }catch(e){}
+  // 2) limpa TUDO que guarda estado no navegador — sem isso o app pode
+  //    voltar mostrando a tela antiga e parecer que o reset não funcionou
+  try{ localStorage.clear(); }catch(e){}
+  try{ sessionStorage.clear(); }catch(e){}
+  // caches do service worker
+  try{
+    if(window.caches && caches.keys){
+      const nomes = await caches.keys();
+      await Promise.all(nomes.map(n=>caches.delete(n)));
+    }
+  }catch(e){ console.error("Falha ao limpar cache:", e); }
+  // service worker: desregistra para a próxima carga vir do servidor
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+  }catch(e){ console.error("Falha ao desregistrar o service worker:", e); }
+  // 3) recarrega sem reaproveitar nada do cache
   await new Promise(r=>setTimeout(r,400));
-  location.reload();
+  location.replace(location.pathname + "?r=" + Date.now());
 }
 
 /* ================= BOOT ================= */
