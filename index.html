@@ -624,7 +624,7 @@ function renderReport(){
   const strength=S.sessions.filter(s=>s.t!=="M").length, mob=S.sessions.filter(s=>s.t==="M").length;
   const m=monthNow();
   document.getElementById("repName").textContent=`Evolução de ${S.name}`;
-  document.getElementById("repSummary").textContent=`${strength} sessões de força e controle · ${mob} de rotina diária · mês ${m} de 12`;
+  document.getElementById("repSummary").textContent=`${strength} ${strength===1?"sessão":"sessões"} de força e controle · ${mob} de rotina diária · mês ${m} de 12`;
   document.getElementById("repBar").style.width=Math.round(m/12*100)+"%";
   const wnow=weekIndex(), first=Math.max(1, wnow-7); let html="";
   for(let w=first;w<=Math.max(wnow,1);w++){ const t=weekSessions(w).total; const pct=Math.min(100,t/4*100); html+=`<div class="col"><div class="vl">${t||""}</div><div class="bar" style="height:${pct}%"></div><div class="lb">S${w}</div></div>`; }
@@ -738,5 +738,6 @@ function closeVideo(){ const ov=document.getElementById("vidOverlay"); if(ov){ d
 <script src="gv-runlog.js"></script>
 <script src="gv-contentfallback.js"></script>
 <script src="gv-inactivity.js"></script>
+<script src="gv-theme.js"></script>
 </body>
 </html>
