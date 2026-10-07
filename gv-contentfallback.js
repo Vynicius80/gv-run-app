@@ -15,6 +15,10 @@
    Mapeamento de sessão (provisório, até a UI ganhar C1/C2 separados):
      M -> diario | B -> B | C -> C1
 
+   Com a migração para o GV Run Club, o conteúdo mensal vale para todos:
+   assim que o bloco do mês é publicado no Supabase, ele substitui o
+   conteúdo local para qualquer aluno.
+
    Requer: gv-auth-sync.js (usa `sb`), openSession/curChecks/
    updateDoneBtn já definidos no index.html.
    Carregar por ÚLTIMO, depois de gv-runlog.js, antes de </body>:
