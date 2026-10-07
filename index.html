@@ -662,7 +662,26 @@ function renderProfile(){
   document.getElementById("profInfo").textContent=`Início: ${br(S.start)} · Mês ${m} de 12 · Fase ${ph} (${PHASE_INFO[ph].name})`;
   document.getElementById("profLevel").textContent=`Nível: ${levelName(S.level)} (${S.pts} pts na avaliação)`;
 }
-function resetAll(){ if(confirm("Apagar todos os dados e recomeçar?")){ localStorage.removeItem(KEY); location.reload(); } }
+async function resetAll(){
+  if(!confirm("Apagar todos os dados e recomeçar?\n\nIsso apaga seu progresso, avaliações e registros de dor. Seu acesso ao app continua liberado.")) return;
+  const btn = document.querySelector('#vProfile .btn.ghost');
+  if(btn){ btn.disabled = true; btn.textContent = "Apagando..."; }
+  // 1) apaga na nuvem (é lá que os dados ficam desde a migração)
+  try{
+    const email = (window.GVCloud && GVCloud.email) ? GVCloud.email : null;
+    if(email && window.sb){
+      for(const t of ["user_progress","pain_records","athlete_anamnesis","risk_events","runs"]){
+        const { error } = await sb.from(t).delete().eq("email", email);
+        if(error) console.error("Erro ao apagar em "+t+":", error);
+      }
+    }
+  }catch(e){ console.error("Falha ao apagar na nuvem:", e); }
+  // 2) limpa o cache local e recomeça
+  //    (um respiro antes do reload, para as exclusões acima terminarem de sair)
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  await new Promise(r=>setTimeout(r,400));
+  location.reload();
+}
 
 /* ================= BOOT ================= */
 function boot(){
