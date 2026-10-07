@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0A1730">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>GV Run · Programa 8 Semanas</title>
+<title>GV Run Club</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="gv-auth-sync.js"></script>
 <style>
@@ -107,36 +107,22 @@ table.cmp td.n{color:var(--sky);font-weight:800;text-align:center;white-space:no
 
 <header>
   <div class="eyebrow">Método GV Run</div>
-  <h1>Programa 8 Semanas</h1>
+  <h1>GV Run Club</h1>
 </header>
-
-<!-- GATE -->
-<div id="vGate" class="wrap hidden">
-  <div class="card" style="margin-top:40px">
-    <span class="tag">Acesso ao programa</span>
-    <h3>Digite sua senha de acesso</h3>
-    <p>Você recebeu a senha por e-mail junto com a confirmação da sua compra. Digite abaixo para liberar o app.</p>
-    <label>Senha de acesso</label>
-    <input type="password" id="inGate" placeholder="••••••••" autocomplete="off">
-    <p id="gateErr" style="color:#F0A0A0;display:none;margin-top:8px">Senha incorreta. Confira o e-mail da compra.</p>
-    <button class="btn" style="margin-top:16px" onclick="checkGate()">Liberar acesso 🔓</button>
-  </div>
-  <div class="banner blue">Ainda não tem acesso? Garanta sua vaga com <b>@vyni.fisio</b> ou <b>@guicarlii</b>.</div>
-</div>
 
 <!-- ONBOARDING -->
 <div id="vOnboard" class="wrap hidden">
   <div class="card" id="nameCard">
     <span class="tag" id="onbTag">Bem-vindo(a)</span>
     <h3 id="onbTitle">Vamos configurar seu programa</h3>
-    <p>Leva 3 minutos. Primeiro seu nome, depois os testes da Semana 0 para definir seu nível e medir sua evolução.</p>
+    <p>Leva 3 minutos. Primeiro seu nome, depois a avaliação inicial para definir seu nível e medir sua evolução ao longo do ano.</p>
     <label>Seu nome</label>
     <input type="text" id="inName" placeholder="Como você quer ser chamado">
   </div>
   <div class="card">
     <span class="tag">Avaliação · registre o resultado</span>
     <h3>Faça cada teste e anote</h3>
-    <p style="margin-bottom:4px">Marque se conseguiu (Sim/Não) e digite o valor — é assim que você compara sua evolução na semana 8.</p>
+    <p style="margin-bottom:4px">Marque se conseguiu (Sim/Não) e digite o valor — é assim que você compara sua evolução nas reavaliações.</p>
     <div id="assessList"></div>
     <p id="lvlPreview" style="margin-top:12px"><b style="color:var(--sky)">Nível: Iniciante</b> (0 pontos)</p>
   </div>
@@ -154,14 +140,14 @@ table.cmp td.n{color:var(--sky);font-weight:800;text-align:center;white-space:no
   </div>
   <div class="banner warn hidden" id="painBanner"></div>
   <h2 class="sec">Sua sessão de hoje</h2>
-  <button class="btn" onclick="openSession('M')">🌀 (A) Mobilidade — 10 min</button>
+  <button class="btn" onclick="openSession('M')">🌀 (A) Mobilidade e foot core — 10 min</button>
   <button class="btn ghost" onclick="openSession('B')">🎯 (B) Controle e propriocepção</button>
   <button class="btn ghost" onclick="openSession('C')">💪 (C) Força</button>
   <div style="height:14px"></div>
   <div class="card">
     <span class="tag">Esta semana</span>
     <h3 id="weekDoneTitle"></h3>
-    <p>Meta: Sessão A + Sessão B + mobilidade quase diária. Alta solicitação ≥ 48 h antes de prova ou treino-chave.</p>
+    <p>Meta: Sessão B + Sessão C + a rotina diária quase todos os dias. Alta solicitação ≥ 48 h antes de prova ou treino-chave.</p>
   </div>
 </div>
 
@@ -211,7 +197,7 @@ table.cmp td.n{color:var(--sky);font-weight:800;text-align:center;white-space:no
     <span class="tag">Avaliação · início vs. agora</span>
     <h3>Compare sua evolução</h3>
     <div id="repAssess"></div>
-    <button class="btn ghost" id="reassessBtn" style="margin-top:14px;display:none" onclick="startReassess()">Fazer reavaliação (semana 8)</button>
+    <button class="btn ghost" id="reassessBtn" style="margin-top:14px;display:none" onclick="startReassess()">Fazer reavaliação</button>
   </div>
 </div>
 
@@ -241,14 +227,7 @@ table.cmp td.n{color:var(--sky);font-weight:800;text-align:center;white-space:no
 
 <script>
 /* =====================================================================
-   1) SENHA DE ACESSO
-   Troque pela senha que você cadastra na Kiwify/Hotmart e entrega ao
-   aluno na confirmação da compra. Deixe "" para desativar nos testes.
-   ===================================================================== */
-const ACCESS_PASSWORD = "GVRUN2025";
-
-/* =====================================================================
-   2) VÍDEOS  — suba no YouTube como "Não listado" e cole os links aqui.
+   1) VÍDEOS  — suba no YouTube como "Não listado" e cole os links aqui.
    O botão "▶ ver vídeo" aparece sozinho onde houver link.
    ===================================================================== */
 const VIDEOS = {
@@ -259,9 +238,7 @@ const VIDEOS = {
 };
 
 /* =====================================================================
-   3b) VÍDEOS DOS TESTES — mesma lógica dos exercícios.
-   Grave o teste, suba no YouTube como "Não listado" e cole o link.
-   O botão "▶ ver como fazer o teste" aparece sozinho onde houver link.
+   2) VÍDEOS DOS TESTES — mesma lógica dos exercícios.
    ===================================================================== */
 const VIDEOS_TESTES = {
   balance:"https://youtube.com/shorts/QuUqFATWf3Q?feature=share", calf:"https://youtube.com/shorts/jA1_iVzcsx8?feature=share", bridge:"https://youtube.com/shorts/V7WOX0jDxwg?feature=share", stepdown:"https://youtube.com/shorts/Gsq6c1i-K0M?feature=share", hop:"https://youtube.com/shorts/tnWCnT-kTAM?feature=share"
@@ -269,12 +246,6 @@ const VIDEOS_TESTES = {
 
 /* =====================================================================
    3) TESTES DA AVALIAÇÃO — bilaterais (D + E) com LSI automático
-   type:
-     "reps"  -> D e E em repetições
-     "timer" -> D e E em segundos, com cronômetro embutido
-     "hop3"  -> 3 saltos por lado; app faz a média e o LSI
-     "stepq" -> D e E: repetições + "joelho cai? sim/não"
-   goal = meta por lado (para pontuar o nível)
    ===================================================================== */
 const ASSESS = [
   {id:"balance", q:"Equilíbrio unipodal, olhos fechados", hint:"Fique numa perna, olhos fechados. Use o cronômetro para cada lado.", type:"timer", unit:"s", goal:30},
@@ -284,8 +255,7 @@ const ASSESS = [
   {id:"hop", q:"Salto unipodal (distância)", hint:"3 saltos em cada perna. O app calcula a média e a assimetria (LSI).", type:"hop3", unit:"cm", goal:null}
 ];
 
-/* LSI = (maior − menor) / maior × 100  →  simetria = 100 − assimetria.
-   Retorna {sym, asym, weak} onde weak é o lado deficitário. */
+/* LSI = (maior − menor) / maior × 100  →  simetria = 100 − assimetria. */
 function lsi(d, e){
   d = Number(d)||0; e = Number(e)||0;
   if(d<=0 || e<=0) return null;
@@ -299,28 +269,30 @@ function avg3(arr){
   return Math.round(v.reduce((a,b)=>a+b,0)/v.length);
 }
 
-/* Info de fase (só para o texto do topo) */
+/* ============ AS 4 FASES DO ANO (GV Run Club) ============
+   Fase 1: meses 1–2 | Fase 2: meses 3–5 | Fase 3: meses 6–9 | Fase 4: meses 10–12 */
 const PHASE_INFO = {
-  1:{name:"Adaptação", focus:"Aprender a técnica e preparar músculos e tendões. Esforço leve (RPE 5–6). Dor muscular tardia leve é normal."},
-  2:{name:"Construção", focus:"Subir a carga com técnica dominada (RPE 6–7). Na semana 4, reduza o volume de corrida em ~20% (deload)."},
-  3:{name:"Intensificação", focus:"Excêntricos pesados + pliometria leve (RPE 7–8). Faça ≥ 48 h antes dos treinos-chave."},
-  4:{name:"Consolidação e potência", focus:"Transformar força em resistência à fadiga. Se tem prova, esta fase é a preparação final."}
+  1:{name:"Fundação", months:"Meses 1–2", focus:"Corrigir assimetrias de base e aprender a técnica. Esforço leve (RPE 5–6). Dor muscular tardia leve é normal."},
+  2:{name:"Construção", months:"Meses 3–5", focus:"Resistência e controle dinâmico sob fadiga, com a técnica já dominada (RPE 6–7)."},
+  3:{name:"Performance preventiva", months:"Meses 6–9", focus:"Potência elástica e força rápida (RPE 7–8). Faça ≥ 48 h antes dos treinos-chave."},
+  4:{name:"Manutenção", months:"Meses 10–12", focus:"Consolidar os ganhos do ano e preparar a reavaliação final."}
 };
-function phaseOf(w){ return Math.ceil(w/2); }
+function phaseOfMonth(m){ return m<=2 ? 1 : m<=5 ? 2 : m<=9 ? 3 : 4; }
 
 /* Notas de nível por fase */
 const LEVEL_NOTE = {
   1:{ini:"Panturrilha e RDL com as duas pernas; prancha com joelhos apoiados.", av:"Adicione carga leve na panturrilha e no RDL desde já."},
-  2:{ini:"Búlgaro sem carga e step-down baixo por mais 1 semana.", av:"Panturrilha unipodal com carga; RDL unipodal no lugar do bilateral."},
-  3:{ini:"Adie os pogo hops 1 semana; mantenha equilíbrio olhos fechados no lugar.", av:"Aumente a carga nos excêntricos mantendo a descida de 3–4 s."},
+  2:{ini:"Búlgaro sem carga e step-down baixo por mais algumas semanas.", av:"Panturrilha unipodal com carga; RDL unipodal no lugar do bilateral."},
+  3:{ini:"Adie os pogo hops; mantenha equilíbrio olhos fechados no lugar.", av:"Aumente a carga nos excêntricos mantendo a descida de 3–4 s."},
   4:{ini:"Hop-and-stick: comece só para frente, sem giro.", av:"Pogo com avanço; hop-and-stick lateral e com giro."}
 };
 
 /* Aviso de segurança em toda sessão de treino */
 const SAFETY_NOTE = "Se sentir dor ou tiver alguma limitação, reduza a amplitude e trabalhe apenas no ângulo de proteção (a faixa de movimento sem dor). Prevenção não precisa doer.";
 
-/* ============ PROGRESSÃO SEMANA A SEMANA ============
-   WEEKS[semana] = { M:[mobilidade], B:[controle], C:[força] }
+/* ============ CONTEÚDO LOCAL (fallback) ============
+   Um bloco por mês. Enquanto os blocos do Supabase não forem publicados,
+   o mês N usa o bloco local N (parando no 8, que é o último local).
    Cada item: {id, n, d} */
 const WEEKS = {
  1:{
@@ -364,6 +336,7 @@ const WEEKS = {
    C:[{id:"pant",n:"Panturrilha pesada",d:"4 × 10 · mantém carga"},{id:"declinio",n:"Agachamento em declínio unipodal",d:"4 × 10"},{id:"rdl",n:"RDL",d:"4 × 10"},{id:"pogo",n:"Pogo hops",d:"3 × 20"},{id:"hop_lat",n:"Hop-and-stick lateral",d:"3 × 5 / direção"}]
  }
 };
+const LOCAL_BLOCKS = 8; // quantos blocos locais existem (fallback)
 
 /* ================= ESTADO ================= */
 const KEY = "gvrun_v2";
@@ -375,14 +348,25 @@ function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || null }catc
 function save(){ if(S) GVCloud.save(S); }
 function today(){ return new Date().toISOString().slice(0,10) }
 function br(d){ return d.split("-").reverse().join("/") }
-function week(){ if(!S) return 1; const days=Math.floor((new Date(today())-new Date(S.start))/864e5); return Math.min(8,Math.max(1,Math.floor(days/7)+1)); }
-function phase(){ return Math.ceil(week()/2) }
+
+/* Mês do programa (1 a 12) — é o que o aluno vê */
+function monthNow(){
+  if(!S || !S.start) return 1;
+  const days = Math.floor((new Date(today()) - new Date(S.start))/864e5);
+  return Math.min(12, Math.max(1, Math.floor(days/30)+1));
+}
+/* Semana corrida desde o início — usada só para as janelas de "esta semana" */
+function weekIndex(){
+  if(!S || !S.start) return 1;
+  const days = Math.floor((new Date(today()) - new Date(S.start))/864e5);
+  return Math.max(1, Math.floor(days/7)+1);
+}
+/* Qual bloco local usar enquanto o Supabase não publica o mês */
+function contentBlock(){ return Math.min(LOCAL_BLOCKS, monthNow()); }
+function phase(){ return phaseOfMonth(monthNow()) }
 function levelName(l){ return l==="ini"?"Iniciante":l==="av"?"Avançado":"Intermediário" }
-/* Nível: pontua quando a MENOR das duas pernas atinge a meta (mais rígido e
-   clinicamente correto — o lado fraco é o que importa). Step-down pontua
-   quando não há valgo em nenhum lado. */
+
 function sideValues(t, r){
-  // returns {d, e} numeric per test type, or null
   if(!r) return null;
   if(t.type==="hop3") return { d:avg3(r.dArr), e:avg3(r.eArr) };
   if(t.type==="timer"||t.type==="reps"||t.type==="stepq") return { d:Number(r.d)||0, e:Number(r.e)||0 };
@@ -393,45 +377,29 @@ function scoreAssess(a){
   ASSESS.forEach(t=>{
     const r=a[t.id]; if(!r) return;
     if(t.type==="stepq"){
-      // pontua se joelho NÃO cai em nenhum lado
       if(r.dFall===false && r.eFall===false) p++;
       return;
     }
     const sv = sideValues(t,r); if(!sv||!sv.d||!sv.e) return;
     if(t.goal!=null){ if(Math.min(sv.d,sv.e) >= t.goal) p++; }
-    else { // hop: pontua por simetria (LSI ≥ 90)
-      const L=lsi(sv.d,sv.e); if(L && L.sym>=90) p++;
-    }
+    else { const L=lsi(sv.d,sv.e); if(L && L.sym>=90) p++; }
   });
   return p;
 }
 function levelFromPts(p){ return p<=1?"ini":p<=3?"int":"av" }
 
-/* ================= GATE ================= */
-function checkGate(){
-  const v = document.getElementById("inGate").value.trim();
-  if(v === ACCESS_PASSWORD){ localStorage.setItem("gvrun_unlocked","1"); boot(); }
-  else { document.getElementById("gateErr").style.display="block"; }
-}
-function unlocked(){ return true; }  // login agora é por e-mail (GVCloud), senha desativada}
-
 /* ================= ASSESSMENT UI (bilateral + LSI) ================= */
-let timers = {}; // {id_side: {t0, acc, running, int}}
+let timers = {};
 
 function renderAssessInputs(){
   document.getElementById("assessList").innerHTML = ASSESS.map(t=>{
     const vt = VIDEOS_TESTES[t.id];
     const vbtn = vt ? `<a class="vid" href="#" onclick="event.preventDefault();openVideo('${vt}')">▶ ver como fazer o teste</a>` : "";
     let body = "";
-    if(t.type==="reps"){
-      body = pairInputs(t.id, t.unit, t.goal);
-    } else if(t.type==="timer"){
-      body = timerInputs(t.id, t.goal);
-    } else if(t.type==="hop3"){
-      body = hopInputs(t.id);
-    } else if(t.type==="stepq"){
-      body = stepInputs(t.id, t.goal);
-    }
+    if(t.type==="reps"){ body = pairInputs(t.id, t.unit, t.goal); }
+    else if(t.type==="timer"){ body = timerInputs(t.id, t.goal); }
+    else if(t.type==="hop3"){ body = hopInputs(t.id); }
+    else if(t.type==="stepq"){ body = stepInputs(t.id, t.goal); }
     return `<div class="atest" data-id="${t.id}">
       <div class="q"><b>${t.q}</b><span>${t.hint}</span></div>
       ${vbtn}
@@ -521,7 +489,7 @@ function toggleTimer(id, side){
     const val=Math.round(T.acc*10)/10;
     document.getElementById(`tm_${id}_${side}`).textContent=val.toFixed(1)+"s";
     assessDraft[id]=assessDraft[id]||{}; assessDraft[id][side]=val;
-    T.acc=0; // next tap restarts fresh
+    T.acc=0;
     updateLSI(id); updateLvlPreview();
   }
 }
@@ -547,11 +515,11 @@ function updateLvlPreview(){ const p=scoreAssess(assessDraft); const el=document
 function finishOnboard(){
   const name=document.getElementById("inName").value.trim()||"Corredor(a)";
   const p=scoreAssess(assessDraft);
-  S={ name, level:levelFromPts(p), pts:p, start:today(), assess0:JSON.parse(JSON.stringify(assessDraft)), assess8:null, sessions:[], pain:[] };
+  S={ name, level:levelFromPts(p), pts:p, start:today(), assess0:JSON.parse(JSON.stringify(assessDraft)), assess8:null, sessions:[], pain:[], current_month:1, current_phase:1 };
   save(); show("vHome");
 }
 
-/* ================= REASSESS ================= */
+/* ================= REAVALIAÇÃO ================= */
 function startReassess(){
   reassessMode=true; assessDraft={};
   document.getElementById("nameCard").style.display="none";
@@ -569,7 +537,7 @@ function finishReassess(){
 
 /* ================= NAV ================= */
 function show(id){
-  ["vGate","vOnboard","vHome","vSession","vPain","vReport","vProfile"].forEach(v=>document.getElementById(v).classList.add("hidden"));
+  ["vOnboard","vHome","vSession","vPain","vReport","vProfile"].forEach(v=>document.getElementById(v).classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
   ["nHome","nPain","nReport","nProfile"].forEach(n=>document.getElementById(n).classList.remove("on"));
   const map={vHome:"nHome",vSession:"nHome",vPain:"nPain",vReport:"nReport",vProfile:"nProfile"};
@@ -582,20 +550,22 @@ function show(id){
 
 /* ================= HOME ================= */
 function renderHome(){
-  const w=week(),ph=phaseOf(w),P=PHASE_INFO[ph];
-  document.getElementById("homePhaseTag").textContent=`Fase ${ph} · ${P.name} · Semanas ${(ph-1)*2+1}–${ph*2}`;
-  document.getElementById("homeGreet").textContent=`Olá, ${S.name}! Semana ${w} de 8`;
+  const m=monthNow(), ph=phaseOfMonth(m), P=PHASE_INFO[ph];
+  // mantém o estado em dia para os módulos que leem o mês atual
+  if(S){ S.current_month=m; S.current_phase=ph; }
+  document.getElementById("homePhaseTag").textContent=`Fase ${ph} · ${P.name} · ${P.months}`;
+  document.getElementById("homeGreet").textContent=`Olá, ${S.name}! Mês ${m} de 12`;
   document.getElementById("homeMsg").textContent=P.focus;
-  document.getElementById("homeBar").style.width=Math.round(w/8*100)+"%";
+  document.getElementById("homeBar").style.width=Math.round(m/12*100)+"%";
   document.getElementById("homeWeekChip").textContent=`Nível: ${levelName(S.level)}`;
   const wk=weekSessions();
-  document.getElementById("weekDoneTitle").textContent=`Concluídas: 🌀 ${wk.M}x mobilidade · ${wk.B?"✅":"⬜"} Controle · ${wk.C?"✅":"⬜"} Força`;
+  document.getElementById("weekDoneTitle").textContent=`Concluídas: 🌀 ${wk.M}x rotina diária · ${wk.B?"✅":"⬜"} Controle · ${wk.C?"✅":"⬜"} Força`;
   const lp=S.pain[S.pain.length-1], pb=document.getElementById("painBanner");
-  if(lp&&lp.d===today()&&lp.c!=="g"){ pb.classList.remove("hidden"); pb.textContent=lp.c==="y"?"🟡 Você registrou dor amarela hoje: volte às doses da semana anterior e mantenha só o que não dói. Veja o protocolo na aba Dor.":"🔴 Você registrou dor vermelha hoje: não treine força. Fale com a gente antes da próxima sessão."; }
+  if(lp&&lp.d===today()&&lp.c!=="g"){ pb.classList.remove("hidden"); pb.textContent=lp.c==="y"?"🟡 Você registrou dor amarela hoje: volte às doses do bloco anterior e mantenha só o que não dói. Veja o protocolo na aba Dor.":"🔴 Você registrou dor vermelha hoje: não treine força. Fale com a gente antes da próxima sessão."; }
   else pb.classList.add("hidden");
 }
 function weekSessions(w){
-  w=w||week();
+  w=w||weekIndex();
   const start=new Date(S.start); start.setDate(start.getDate()+(w-1)*7);
   const end=new Date(start); end.setDate(end.getDate()+7);
   const inW=s=>{const d=new Date(s.d);return d>=start&&d<end};
@@ -605,10 +575,10 @@ function weekSessions(w){
 /* ================= SESSION ================= */
 function openSession(t){
   curSession=t; curChecks={};
-  const w=week(), ph=phaseOf(w), P=PHASE_INFO[ph];
-  const list = WEEKS[w][t];
-  const titles = {M:"(A) Mobilidade", B:"(B) Controle e propriocepção", C:"(C) Força"};
-  document.getElementById("sesTag").textContent = t==="M" ? `Semana ${w} · todos os dias` : `Semana ${w} · Fase ${ph} · ${P.name}`;
+  const m=monthNow(), ph=phaseOfMonth(m), P=PHASE_INFO[ph];
+  const list = WEEKS[contentBlock()][t];
+  const titles = {M:"(A) Mobilidade e foot core", B:"(B) Controle e propriocepção", C:"(C) Força"};
+  document.getElementById("sesTag").textContent = t==="M" ? `Mês ${m} · todos os dias` : `Mês ${m} · Fase ${ph} · ${P.name}`;
   document.getElementById("sesTitle").textContent = titles[t];
   document.getElementById("sesFocus").textContent = t==="M"
     ? "Antes de correr, complete com o RAMP: trote leve → ativação com faixa → esta rotina → 3–4 acelerações."
@@ -631,7 +601,7 @@ function toggleEx(i){
 function updateDoneBtn(total){ const done=Object.values(curChecks).filter(Boolean).length; document.getElementById("sesDoneBtn").textContent=done===total?"Concluir sessão ✔":`Concluir sessão (${done}/${total})`; }
 function completeSession(){
   const total=document.querySelectorAll("#sesList .ex").length, done=Object.values(curChecks).filter(Boolean).length;
-  S.sessions.push({d:today(),t:curSession,ph:phaseOf(week()),done,total}); save();
+  S.sessions.push({d:today(),t:curSession,ph:phaseOfMonth(monthNow()),done,total}); save();
   alert("Sessão registrada! 💪 Consistência é o que previne lesão."); show("vHome");
 }
 
@@ -639,7 +609,7 @@ function completeSession(){
 function logPain(c){ S.pain.push({d:today(),c}); save(); renderPain(c); }
 function renderPain(justLogged){
   const g=document.getElementById("painGuide"), c=justLogged||null;
-  if(c==="y") g.innerHTML=`<div class="card"><span class="tag">Protocolo pós-dor (amarelo)</span><p>1 · Corte o volume de corrida pela metade; tire ritmo forte e descidas por 3–5 dias.<br><br>2 · Na força, volte às doses da semana anterior e mantenha só os exercícios sem dor. Respeite o ângulo de proteção.<br><br>3 · Mantenha a mobilidade diária.<br><br>4 · Teste de retorno: 15 min de trote leve → dor ≤ 3/10 durante e na manhã seguinte? Retome a progressão.<br><br>5 · Dor voltou 2x no mesmo lugar? Poste vídeo + descrição no grupo.</p></div>`;
+  if(c==="y") g.innerHTML=`<div class="card"><span class="tag">Protocolo pós-dor (amarelo)</span><p>1 · Corte o volume de corrida pela metade; tire ritmo forte e descidas por 3–5 dias.<br><br>2 · Na força, volte às doses do bloco anterior e mantenha só os exercícios sem dor. Respeite o ângulo de proteção.<br><br>3 · Mantenha a rotina diária.<br><br>4 · Teste de retorno: 15 min de trote leve → dor ≤ 3/10 durante e na manhã seguinte? Retome a progressão.<br><br>5 · Dor voltou 2x no mesmo lugar? Poste vídeo + descrição no grupo.</p></div>`;
   else if(c==="r") g.innerHTML=`<div class="card" style="border-color:rgba(214,69,69,.5)"><span class="tag" style="color:#F0A0A0">Pare e fale com a gente</span><p>Não faça a sessão de força hoje. Descreva a dor (local, quando começou, o que piora) e mande no grupo ou no direct <b style="color:var(--sky)">@vyni.fisio</b>.</p></div>`;
   else if(c==="g") g.innerHTML=`<div class="card"><span class="tag" style="color:#7FDCA9">Tudo certo</span><p>Semáforo verde registrado. Treine e progrida normalmente. 👊</p></div>`;
   else g.innerHTML="";
@@ -652,22 +622,21 @@ function renderPain(justLogged){
 /* ================= REPORT ================= */
 function renderReport(){
   const strength=S.sessions.filter(s=>s.t!=="M").length, mob=S.sessions.filter(s=>s.t==="M").length;
+  const m=monthNow();
   document.getElementById("repName").textContent=`Evolução de ${S.name}`;
-  document.getElementById("repSummary").textContent=`${strength} de 16 sessões de força · ${mob} de mobilidade · semana ${week()} de 8`;
-  document.getElementById("repBar").style.width=Math.min(100,Math.round(strength/16*100))+"%";
-  const wnow=week(); let html="";
-  for(let w=1;w<=Math.max(wnow,1);w++){ const t=weekSessions(w).total; const pct=Math.min(100,t/4*100); html+=`<div class="col"><div class="vl">${t||""}</div><div class="bar" style="height:${pct}%"></div><div class="lb">S${w}</div></div>`; }
+  document.getElementById("repSummary").textContent=`${strength} sessões de força e controle · ${mob} de rotina diária · mês ${m} de 12`;
+  document.getElementById("repBar").style.width=Math.round(m/12*100)+"%";
+  const wnow=weekIndex(), first=Math.max(1, wnow-7); let html="";
+  for(let w=first;w<=Math.max(wnow,1);w++){ const t=weekSessions(w).total; const pct=Math.min(100,t/4*100); html+=`<div class="col"><div class="vl">${t||""}</div><div class="bar" style="height:${pct}%"></div><div class="lb">S${w}</div></div>`; }
   document.getElementById("repBars").innerHTML=html||`<p style="color:var(--mut)">Comece sua primeira sessão para ver o gráfico.</p>`;
   const rp=document.getElementById("repPain");
   if(!S.pain.length) rp.innerHTML=`<p style="color:var(--mut);margin-top:4px">Nenhum registro de dor ainda.</p>`;
   else { const cnt={g:0,y:0,r:0}; S.pain.forEach(p=>cnt[p.c]++); const col={g:"var(--green)",y:"var(--amber)",r:"var(--red)"},nm={g:"Verde",y:"Amarelo",r:"Vermelho"}; rp.innerHTML=`<p style="color:var(--mut);margin-top:4px">🟢 ${cnt.g} · 🟡 ${cnt.y} · 🔴 ${cnt.r}</p><div style="margin-top:8px">${S.pain.slice(-10).reverse().map(p=>`<div class="log"><span class="dot" style="background:${col[p.c]}"></span>${br(p.d)} — ${nm[p.c]}</div>`).join("")}</div>`; }
   const ra=document.getElementById("repAssess");
-  // returns {d,e,sym} display strings for one assessment record
   const de=(t,r)=>{
     if(!r) return null;
     let d,e;
     if(t.type==="hop3"){ d=avg3(r.dArr); e=avg3(r.eArr); }
-    else if(t.type==="stepq"){ d=Number(r.d)||0; e=Number(r.e)||0; }
     else { d=Number(r.d)||0; e=Number(r.e)||0; }
     const L=(d&&e)?lsi(d,e):null;
     return { d:d||"—", e:e||"—", sym:L?L.sym:null, weak:L?L.weak:null, u:t.type==="timer"?"s":(t.type==="hop3"?"cm":"") };
@@ -682,24 +651,26 @@ function renderReport(){
   }).join("");
   ra.innerHTML=`<table class="cmp"><tr><th>Teste</th><th>Início</th><th>Agora</th><th>LSI</th></tr>${rows}</table>`;
   const btn=document.getElementById("reassessBtn");
-  if(week()>=8){ btn.style.display="block"; btn.textContent=S.assess8?"Refazer reavaliação":"Fazer reavaliação (semana 8) ✔"; } else btn.style.display="none";
+  // reavaliação libera ao fim da Fase 1 (a partir do mês 3)
+  if(m>=3){ btn.style.display="block"; btn.textContent=S.assess8?"Refazer reavaliação":"Fazer reavaliação ✔"; } else btn.style.display="none";
 }
 
 /* ================= PROFILE ================= */
 function renderProfile(){
+  const m=monthNow(), ph=phaseOfMonth(m);
   document.getElementById("profName").textContent=S.name;
-  document.getElementById("profInfo").textContent=`Início: ${br(S.start)} · Semana atual: ${week()} de 8 · Fase ${phaseOf(week())} (${PHASE_INFO[phaseOf(week())].name})`;
+  document.getElementById("profInfo").textContent=`Início: ${br(S.start)} · Mês ${m} de 12 · Fase ${ph} (${PHASE_INFO[ph].name})`;
   document.getElementById("profLevel").textContent=`Nível: ${levelName(S.level)} (${S.pts} pts na avaliação)`;
 }
 function resetAll(){ if(confirm("Apagar todos os dados e recomeçar?")){ localStorage.removeItem(KEY); location.reload(); } }
 
 /* ================= BOOT ================= */
 function boot(){
-  if(!unlocked()){ show("vGate"); document.getElementById("nHome").classList.remove("on"); return; }
   if(S && S.start){ show("vHome"); }
   else { assessDraft={}; renderAssessInputs(); show("vOnboard"); document.getElementById("nHome").classList.remove("on"); }
 }
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+
 // ===== player de vídeo embutido =====
 function ytId(url){ if(!url) return ""; const m=url.match(/(?:shorts\/|watch\?v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/); return m?m[1]:""; }
 function openVideo(url){
@@ -731,6 +702,6 @@ function closeVideo(){ const ov=document.getElementById("vidOverlay"); if(ov){ d
 <script src="gv-riskgate.js"></script>
 <script src="gv-runlog.js"></script>
 <script src="gv-contentfallback.js"></script>
-<script src="gv-inactivity.js"></script>  
+<script src="gv-inactivity.js"></script>
 </body>
 </html>
