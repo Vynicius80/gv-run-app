@@ -1,89 +1,120 @@
-# GV Run · App do Programa 8 Semanas (v2)
+# GV Run Club · App
 
-PWA do Programa GV Run. Stack: HTML/CSS/JS puro + localStorage. Sem build.
-Sobe na Vercel igual TeamNoi: GitHub → import → Deploy.
+PWA do GV Run Club — sistema de prevenção e performance para corredores.
+Stack: HTML/CSS/JS puro + Supabase. Sem build.
+Sobe na Vercel: GitHub → import → Deploy.
 
-## NOVIDADES DA v2
-- 🔒 Tela de senha de acesso (libera só quem comprou)
-- 📝 Avaliação com Sim/Não + valor (repetições, tempo, % de simetria)
-- ▶ Botão de vídeo por exercício
-- 📈 Aba Evolução: frequência por semana, histórico de dor e comparação início vs. semana 8
+Produção: https://gv-run-app.vercel.app
 
-## ===== 3 COISAS PARA CONFIGURAR (no topo do index.html) =====
+---
 
-### 1) SENHA DE ACESSO
-```js
-const ACCESS_PASSWORD = "GVRUN2025";
+## COMO FUNCIONA O ACESSO
+
+Não há senha. O aluno entra com o **e-mail da compra**:
+
+1. Compra aprovada na Hotmart → webhook `hotmart-webhook` (Edge Function do Supabase)
+2. O webhook grava o e-mail na tabela `allowed_emails` e o tipo de assinatura em `user_progress.subscription_type`
+3. O aluno abre o app, digita o e-mail, e o `gv-auth-sync.js` valida contra a `allowed_emails`
+
+Para liberar alguém manualmente, basta inserir o e-mail na `allowed_emails`.
+
+---
+
+## O PROGRAMA
+
+Jornada contínua de **12 meses**, em 4 fases. Um bloco de treino por mês.
+
+| Fase | Meses | Foco |
+|---|---|---|
+| 1 · Fundação | 1–2 | Corrigir assimetrias de base, aprender a técnica |
+| 2 · Construção | 3–5 | Resistência e controle dinâmico sob fadiga |
+| 3 · Performance preventiva | 6–9 | Potência elástica e força rápida |
+| 4 · Manutenção | 10–12 | Consolidar os ganhos e reavaliar o ano |
+
+Três sessões por bloco:
+- **(A) Mobilidade e foot core** — diária, ~10 min (foot core primeiro, mobilidade depois)
+- **(B) Controle e propriocepção** — 2×/semana
+- **(C) Força** — 2×/semana
+
+---
+
+## DE ONDE VEM O CONTEÚDO
+
+O app busca o bloco do mês no Supabase. Se o bloco ainda não estiver publicado,
+usa o conteúdo local do `index.html` como fallback — assim o app nunca fica vazio.
+
+- **Supabase** (preferencial): tabelas `monthly_blocks`, `block_sessions`, `session_exercises`, `exercises`
+- **Local** (fallback): objeto `WEEKS` no `index.html`, com 8 blocos. O mês N usa o bloco N, parando no 8.
+
+Para publicar o bloco de um mês:
+
+```sql
+update monthly_blocks set is_published = true, published_at = now()
+where month_number = 1;
 ```
-Troque por uma senha sua. Cadastre essa mesma senha na Kiwify/Hotmart, em
-"conteúdo do produto" / e-mail de confirmação, para o aluno receber ao comprar.
-Deixe "" (vazio) para desativar a senha durante seus testes.
 
-Como funciona: o aluno digita 1 vez; o app grava que está liberado naquele
-aparelho e não pede mais. (Senha única para a turma — para acesso individual
-por e-mail, é a versão Supabase.)
+A partir daí, o conteúdo do Supabase substitui o local automaticamente, sem mexer em código.
 
-### 2) VÍDEOS
-```js
-const VIDEOS = { pant:"https://youtu.be/XXXX", heel:"...", ... };
-```
-Grave cada exercício, suba no YouTube como **Não listado**, cole o link no id
-correspondente. O botão "▶ ver vídeo" aparece sozinho onde houver link.
-Lista de ids: pant, heel, agach_uni, rdl, pallof, bulgaro, declinio, rdl_uni,
-hop, spanish, stepdown, equi, tibial, pecurto, prancha, faixa, pogo, curl,
-mob1..mob6.
+---
 
-### 3) TESTES DA AVALIAÇÃO (opcional)
-Já vêm prontos os 4 testes. Para ajustar meta/unidade, edite o array `ASSESS`.
-kind: "reps" (repetições) | "time" (segundos) | "dist" (%) | "quality" (só sim/não).
+## ARQUIVOS
 
-## COMO O ALUNO USA
-1. Abre o link → digita a senha (1x) → onboarding com nome + avaliação
-2. Aba Hoje: sessão A, B ou mobilidade, com checklist e vídeos
-3. Aba Dor: registra o semáforo; amarelo/vermelho abre protocolo na hora
-4. Aba Evolução: acompanha frequência, dor e comparação da avaliação
-5. Na semana 8, o app libera "Refazer avaliação" para fechar o antes/depois
+| Arquivo | O que faz |
+|---|---|
+| `index.html` | App principal: onboarding, avaliação, sessões, relatório, perfil |
+| `gv-auth-sync.js` | Login por e-mail e sincronização do progresso com o Supabase |
+| `gv-clinic.js` | Semáforo da dor e bloqueio de força no vermelho |
+| `gv-ui.js` | Ajustes de interface |
+| `gv-painmap.js` | Mapa corporal de dor (grava em `pain_records`) |
+| `gv-painhistory.js` | Histórico de dor com detecção de padrão recorrente |
+| `gv-anamnesis.js` | Anamnese no onboarding (grava em `athlete_anamnesis`) |
+| `gv-riskgate.js` | Gatilho de 3 semáforos vermelhos → convite para avaliação |
+| `gv-runlog.js` | Registro de corrida e matriz de carga (força completa/moderada/regenerativa) |
+| `gv-contentfallback.js` | Busca o bloco do mês no Supabase; cai no conteúdo local se não houver |
+| `gv-inactivity.js` | Lembrete na Home quando o aluno passa dias sem treinar |
+| `fisio-dashboard.html` | Painel interno do fisioterapeuta (acesso por senha, fora da navegação do app) |
 
-## LIMITAÇÃO (por design nesta versão)
-Dados no aparelho do aluno (localStorage). Trocou de celular = recomeça.
-Sem painel para vocês verem o progresso da turma.
+**A ordem dos scripts no `index.html` importa** — cada módulo encaixa por cima do anterior.
+Mantenha a sequência que já está no arquivo.
 
-## PRÓXIMA VERSÃO (quando a turma 1 validar): SUPABASE
-- Login por e-mail; e-mail do comprador liberado via webhook da Kiwify
-- Dados na nuvem (multi-dispositivo) + painel admin para vocês acompanharem
-- Migração facilitada: todo dado já passa pelas funções load()/save()
+---
 
+## VÍDEOS
 
-## AVALIAÇÃO BILATERAL + ASSIMETRIA (LSI) — v2.1
-Todos os testes agora medem Direita e Esquerda e o app calcula a assimetria
-automaticamente pela fórmula LSI = (maior − menor) / maior × 100.
-Ele mostra a simetria (%), a assimetria e QUAL lado está deficitário.
-- Equilíbrio unipodal: cronômetro embutido (Iniciar/Parar) por lado
-- Panturrilha unipodal: repetições D e E
-- Single Leg Bridge Test: repetições D e E (novo)
-- Step-down: repetições + "joelho cai? Sim/Não" por lado
-- Salto unipodal: 3 saltos por lado; o app faz a média e o LSI
+Ficam em dois lugares:
 
-### VÍDEOS DOS TESTES
-No topo do index.html há o objeto VIDEOS_TESTES:
-```js
-const VIDEOS_TESTES = { balance:"", calf:"", bridge:"", stepdown:"", hop:"" };
-```
-Grave cada teste, suba no YouTube como "Não listado" e cole o link.
-O botão "▶ ver como fazer o teste" aparece sozinho em cada teste com link.
+- **`VIDEOS` no `index.html`** — usados pelo conteúdo local (fallback)
+- **Coluna `video_url` da tabela `exercises`** — usados pelo conteúdo do Supabase
 
-## v2.2 — PROGRESSÃO SEMANA A SEMANA + SESSÕES RENOMEADAS
-- Sessões agora na ordem (A) Mobilidade → (B) Controle → (C) Força
-- Cada uma das 8 semanas tem doses próprias (modelo por data, livre):
-  o app mostra a semana correta automaticamente pela data de início.
-- Mobilidade progride nas semanas 2–3 e de novo nas 7–8; força nas semanas 7–8
-  sobe para 4 séries de 10 repetições.
-- Aviso de segurança em toda sessão de treino: respeitar o ângulo de proteção
-  (faixa de movimento sem dor) se houver dor ou limitação.
-- Botão de vídeo por exercício ("▶ ver vídeo do exercício") e por teste
-  ("▶ ver como fazer o teste") — aparecem quando os links são preenchidos em
-  VIDEOS e VIDEOS_TESTES.
+Suba no YouTube como "Não listado" e cole o link. O botão "▶ ver vídeo" aparece sozinho onde houver link.
 
-### Novos ids de vídeo (exercícios de mobilidade adicionados)
-mob7 (adutores rock back), mob8 (agachamento com rotação/reach),
-mob9 (world's greatest), hop_lat (hop-and-stick lateral).
+---
+
+## BANCO (Supabase · projeto GV Run)
+
+| Tabela | Conteúdo |
+|---|---|
+| `allowed_emails` | Quem tem acesso ao app |
+| `user_progress` | Progresso do aluno (jsonb) + tipo de assinatura |
+| `exercises` | Acervo de exercícios com vídeo, padrão motor e degrau |
+| `phases`, `monthly_blocks`, `block_sessions`, `session_exercises` | Estrutura do conteúdo mensal |
+| `assessment_tests`, `user_test_results` | Bateria de testes e resultados |
+| `pain_records` | Registros do mapa de dor |
+| `athlete_anamnesis` | Anamnese do aluno |
+| `risk_events` | Histórico do semáforo (alimenta o gatilho de 3 vermelhos) |
+| `runs` | Corridas registradas (alimentam a matriz de carga) |
+
+---
+
+## MANUTENÇÃO
+
+**Para testar:** sempre em aba anônima. O service worker guarda a versão antiga em cache.
+Se o app não atualizar: DevTools → Application → Storage → Clear site data → Unregister.
+
+**Atenção:** confirme que está no projeto **GV Run** do Supabase antes de rodar qualquer SQL.
+Existe outro projeto na mesma conta, e rodar no errado já custou horas de depuração.
+
+---
+
+Programa educativo e preventivo do Método GV — Vynicius Dal Savio (CREFITO-10 248955-F)
+e Guilherme Dias Carli (CREFITO-10 111237-F). Não substitui avaliação fisioterapêutica individual.
