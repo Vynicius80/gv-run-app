@@ -72,6 +72,7 @@ A partir daí, o conteúdo do Supabase substitui o local automaticamente, sem me
 | `gv-runlog.js` | Registro de corrida e matriz de carga (força completa/moderada/regenerativa) |
 | `gv-contentfallback.js` | Busca o bloco do mês no Supabase; cai no conteúdo local se não houver |
 | `gv-inactivity.js` | Lembrete na Home quando o aluno passa dias sem treinar |
+| `gv-theme.js` | Camada visual final (tipografia, cartões, navegação). Remova a linha do script para voltar ao visual anterior |
 | `fisio-dashboard.html` | Painel interno do fisioterapeuta (acesso por senha, fora da navegação do app) |
 
 **A ordem dos scripts no `index.html` importa** — cada módulo encaixa por cima do anterior.
