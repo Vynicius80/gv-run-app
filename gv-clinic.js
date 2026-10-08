@@ -83,14 +83,19 @@
       .join("");
   };
 
-  /* ---------- Abertura da sessão com o gate clínico ---------- */
+  /* ---------- Abertura da sessão com o gate clínico ----------
+     IMPORTANTE: usa monthNow()/phaseOfMonth()/contentBlock(), as
+     mesmas funções do index.html (sistema de 12 meses / GV Run
+     Club). As funções antigas week()/phaseOf() eram do programa
+     de 8 semanas e não existem mais — usá-las aqui quebrava a
+     abertura de QUALQUER sessão com um erro silencioso. */
   const _openList = function (t) {
     // esta parte é idêntica ao app original: monta e mostra a sessão
     curSession = t; curChecks = {};
-    const w = week(), ph = phaseOf(w), P = PHASE_INFO[ph];
-    const list = WEEKS[w][t];
-    const titles = { M: "(A) Mobilidade", B: "(B) Controle e propriocepção", C: "(C) Força" };
-    document.getElementById("sesTag").textContent = t === "M" ? `Semana ${w} · todos os dias` : `Semana ${w} · Fase ${ph} · ${P.name}`;
+    const m = monthNow(), ph = phaseOfMonth(m), P = PHASE_INFO[ph];
+    const list = WEEKS[contentBlock()][t];
+    const titles = { M: "(A) Mobilidade e foot core", B: "(B) Controle e propriocepção", C: "(C) Força" };
+    document.getElementById("sesTag").textContent = t === "M" ? `Mês ${m} · todos os dias` : `Mês ${m} · Fase ${ph} · ${P.name}`;
     document.getElementById("sesTitle").textContent = titles[t];
     document.getElementById("sesFocus").textContent = t === "M"
       ? "Antes de correr, complete com o RAMP: trote leve → ativação com faixa → esta rotina → 3–4 acelerações."
@@ -133,7 +138,7 @@
   window.completeSession = function () {
     const total = document.querySelectorAll("#sesList .ex").length,
           done = Object.values(curChecks).filter(Boolean).length;
-    S.sessions.push({ d: today(), t: curSession, ph: phaseOf(week()), done, total, pain: painToday() || null });
+    S.sessions.push({ d: today(), t: curSession, ph: phaseOfMonth(monthNow()), done, total, pain: painToday() || null });
     save();
     alert("Sessão registrada! 💪 Consistência é o que previne lesão.");
     show("vHome");
