@@ -8,7 +8,7 @@ const GV_CONFIG = {
 };
 
 const sb = window.supabase.createClient(GV_CONFIG.SUPABASE_URL, GV_CONFIG.SUPABASE_ANON);
-
+window.sb = sb;
 const CACHE_KEY = 'gvrun_state';
 const EMAIL_KEY = 'gvrun_email';
 const DIRTY_KEY = 'gvrun_dirty';
