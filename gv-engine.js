@@ -31,7 +31,7 @@
 (function (root) {
   'use strict';
 
-  var VERSION = '0.3.1-shadow';
+  var VERSION = '0.4.0-shadow';
 
   /* ---------------- parâmetros de reserva (iguais ao engine_config) ----------------
      Usados se a leitura do banco falhar. Valores = seeds da Etapa 2. */
@@ -43,7 +43,13 @@
     moderada: { rpe_gte: 7, duracao_min_gt: 60, janela_horas: 30 },
     regenerativa: { series_fator: 0.5, esforco_max: 'facil', sem_subir_degrau: true },
     nivel_pontos: { ini_max: 1, int_max: 3 },
-    dor_mobilidade_max: 3
+    dor_mobilidade_max: 3,
+    /* Etapa 4 — semana (as chaves sessoes_por_semana e gruda_semanas também existem no banco) */
+    sessoes_por_semana: { A: 7, B: 2, C1: 3, C2: 3 },
+    gruda_semanas: 4,
+    selecao: { max_itens: { A: null, B: 5, C1: 5, C2: 5 } },
+    dias_forca: [1, 2, 3, 4, 5, 6],      // 0 = domingo; sem domingo = 1 dia livre por semana
+    b_junto_de_forca: true               // B cai em dia de força (padrão aceito)
   };
 
   /* Quando mais de uma regra pede para recuar degrau, vale o MAIOR recuo
@@ -428,8 +434,186 @@
     return aplicarGate(presc, gate, args.sessao, cfg);
   }
 
+  /* ============================================================
+     ETAPA 4 — SELEÇÃO SEMANAL
+     Monta a semana (segunda a domingo): em que dia cai cada sessão,
+     quais exercícios cada tipo de sessão leva, garantindo cobertura
+     dos pilares, prioridade aos déficits e estabilidade ("gruda").
+     É um MODELO da semana: os gates (vermelho, pós-longão...) são
+     aplicados no dia, com o semáforo real daquele dia.
+     ============================================================ */
+  var SESSOES = ['A', 'B', 'C1', 'C2'];
+  var PILARES_ESPERADOS = ['mobilidade', 'foot_core', 'propriocepcao', 'tronco_quadril',
+    'cadeia_posterior', 'anterior', 'gluteo', 'abdutores', 'adutores'];
+  var SESSAO_NOME = {
+    A: 'Mobilidade e foot core', B: 'Controle e propriocepção',
+    C1: 'Força — cadeia posterior', C2: 'Força — anterior e quadril'
+  };
+  var DIAS_PT = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+  function parseISO(s) { return new Date(s + 'T12:00:00Z'); }
+  function isoDe(d) { return d.toISOString().slice(0, 10); }
+  function somaDias(iso, n) { var d = parseISO(iso); d.setUTCDate(d.getUTCDate() + n); return isoDe(d); }
+  function diaSemana(iso) { return parseISO(iso).getUTCDay(); }               // 0 = domingo
+  function segundaDe(iso) { return somaDias(iso, -((diaSemana(iso) + 6) % 7)); }
+  function difSemanas(a, b) { return Math.round((parseISO(b) - parseISO(a)) / (7 * 864e5)); }
+  function ordemSegunda(a, b) { return ((a + 6) % 7) - ((b + 6) % 7); }        // segunda primeiro, domingo por último
+
+  /* em que dias cai cada sessão de força e o B */
+  function distribuirSessoes(freq, diasForca, bJunto) {
+    freq = freq || {}; var alertas = [];
+    var nC1 = freq.C1 != null ? freq.C1 : 3, nC2 = freq.C2 != null ? freq.C2 : 3, nB = freq.B != null ? freq.B : 2;
+    var dias = (diasForca || []).slice().sort(ordemSegunda);
+    var fila = [], r1 = nC1, r2 = nC2;
+    while (r1 > 0 || r2 > 0) { if (r1 > 0) { fila.push('C1'); r1--; } if (r2 > 0) { fila.push('C2'); r2--; } }
+    var usar = dias.slice(0, fila.length), forca = {};
+    usar.forEach(function (d, i) { forca[d] = fila[i]; });
+    var entregues = { C1: 0, C2: 0 };
+    usar.forEach(function (d) { entregues[forca[d]]++; });
+    if (entregues.C1 < nC1 || entregues.C2 < nC2) {
+      alertas.push({ tipo: 'dias_insuficientes', detalhe: 'Só há ' + dias.length + ' dia(s) para força; pedido: C1 ' + nC1 + 'x e C2 ' + nC2 + 'x. Entregue: C1 ' + entregues.C1 + 'x e C2 ' + entregues.C2 + 'x.' });
+    }
+    var bDias = [], i, k;
+    if (bJunto !== false && usar.length) {
+      for (k = 0; k < nB; k++) { i = Math.floor(k * usar.length / nB); if (bDias.indexOf(usar[i]) < 0) bDias.push(usar[i]); }
+    } else {
+      var livres = [1, 2, 3, 4, 5, 6, 0].filter(function (d) { return !forca[d]; });
+      var base = livres.length ? livres : usar;
+      for (k = 0; k < nB && base.length; k++) { i = Math.floor(k * base.length / nB); if (bDias.indexOf(base[i]) < 0) bDias.push(base[i]); }
+    }
+    if (bDias.length < nB) alertas.push({ tipo: 'b_menos_que_pedido', detalhe: 'Pedido: B ' + nB + 'x por semana; só coube ' + bDias.length + 'x.' });
+    return { forca: forca, B: bDias, alertas: alertas };
+  }
+
+  /* quais famílias cada tipo de sessão leva nesta semana */
+  function selecionarSemana(itens, cfg, historico, segunda) {
+    var cap = (cfg.selecao && cfg.selecao.max_itens) || {};
+    var gruda = cfg.gruda_semanas, alertas = [], selecao = {}, novoHist = {}, chosenItens = {};
+    var ativos = itens.filter(function (i) { return i.passo; });
+    var pilaresComDeficit = {};
+    function temDeficit(i) {
+      return i.origem === 'avaliacao' && i.gerenciado &&
+        (i.delta_solicitado < 0 || i.series_extra > 0 || !!i.lado_fraco);
+    }
+    ativos.forEach(function (i) { if (temDeficit(i)) pilaresComDeficit[i.pilar] = true; });
+    function pontos(i, s, idx) {
+      var h = historico && historico[s] && historico[s][i.familia];
+      // dentro da janela "gruda": continuidade vale; passou da janela: cede a vez para rotacionar
+      var cont = h ? (difSemanas(h, segunda) < gruda ? 10 : -5) : 0;
+      return (temDeficit(i) ? 1000 : 0) + (pilaresComDeficit[i.pilar] ? 100 : 0) + cont - idx / 1000;
+    }
+    SESSOES.forEach(function (s) {
+      var cands = ativos.filter(function (i) { return i.sessao === s; });
+      cands.forEach(function (c, idx) { c._p = pontos(c, s, idx); });
+      var limite = cap[s] != null ? cap[s] : cands.length;
+      var hs = (historico && historico[s]) || {};
+      var forcados = cands.filter(function (c) { return hs[c.familia] && difSemanas(hs[c.familia], segunda) < gruda; });
+      var livres = cands.filter(function (c) { return forcados.indexOf(c) < 0; });
+      var porPontos = function (a, b) { return b._p - a._p; };
+      forcados.sort(porPontos); livres.sort(porPontos);
+      if (forcados.length > limite) alertas.push({ tipo: 'gruda_excede_limite', sessao: s, detalhe: 'Há mais exercícios "grudados" do que vagas em ' + s + '; ficaram os de maior prioridade.' });
+      var escolhidos = forcados.slice(0, limite);
+      for (var k = 0; k < livres.length && escolhidos.length < limite; k++) escolhidos.push(livres[k]);
+      chosenItens[s] = { escolhidos: escolhidos, forcados: forcados, limite: limite, todos: cands };
+    });
+
+    // garantia de cobertura: cada pilar que tem exercício na biblioteca aparece na semana
+    var pilaresDaBib = {};
+    ativos.forEach(function (i) { pilaresDaBib[i.pilar] = true; });
+    function cobertos() { var m = {}; SESSOES.forEach(function (s) { chosenItens[s].escolhidos.forEach(function (i) { m[i.pilar] = (m[i.pilar] || 0) + 1; }); }); return m; }
+    Object.keys(pilaresDaBib).forEach(function (p) {
+      var cob = cobertos();
+      if (cob[p]) return;
+      var melhor = null;
+      ativos.forEach(function (i) { if (i.pilar === p && (!melhor || i._p > melhor._p)) melhor = i; });
+      if (!melhor) return;
+      var bloco = chosenItens[melhor.sessao];
+      if (bloco.escolhidos.length < bloco.limite) { bloco.escolhidos.push(melhor); alertas.push({ tipo: 'cobertura_forcada', familia: melhor.familia, detalhe: 'Incluído para cobrir o pilar ' + p + '.' }); return; }
+      var cand = null;
+      bloco.escolhidos.forEach(function (i) {
+        if (bloco.forcados.indexOf(i) >= 0) return;
+        if ((cob[i.pilar] || 0) < 2) return;                    // tirar esse descobriria outro pilar
+        if (!cand || i._p < cand._p) cand = i;
+      });
+      if (cand) {
+        bloco.escolhidos.splice(bloco.escolhidos.indexOf(cand), 1, melhor);
+        alertas.push({ tipo: 'cobertura_forcada', familia: melhor.familia, detalhe: 'Trocou ' + cand.familia + ' por ' + melhor.familia + ' para cobrir o pilar ' + p + '.' });
+      } else {
+        alertas.push({ tipo: 'cobertura_nao_garantida', detalhe: 'Não coube um exercício do pilar ' + p + ' na semana.' });
+      }
+    });
+
+    SESSOES.forEach(function (s) {
+      var esc = chosenItens[s].escolhidos.slice().sort(function (a, b) { return b._p - a._p; });
+      selecao[s] = esc.map(function (i) { return i.familia; });
+      var hs = (historico && historico[s]) || {};
+      novoHist[s] = {};
+      esc.forEach(function (i) { novoHist[s][i.familia] = (hs[i.familia] && difSemanas(hs[i.familia], segunda) >= 0) ? hs[i.familia] : segunda; });
+    });
+    ativos.forEach(function (i) { delete i._p; });
+    return { selecao: selecao, historicoNovo: novoHist, alertas: alertas };
+  }
+
+  /* args = os de prescricaoInicial + { dataRef:'AAAA-MM-DD', historico, diasForca } */
+  function planoSemanal(args) {
+    args = args || {};
+    var cfg = mergeCfg(args.cfg);
+    var ref = args.dataRef || isoDe(new Date());
+    var segunda = segundaDe(ref);
+    var base = prescricaoInicial(args);
+    var freq = cfg.sessoes_por_semana;
+    var dist = distribuirSessoes(freq, args.diasForca || cfg.dias_forca, cfg.b_junto_de_forca);
+    var sel = selecionarSemana(clone(base.itens), cfg, args.historico || {}, segunda);
+
+    var alertas = [].concat(base.alertas.map(function (a) { return a; }), dist.alertas, sel.alertas);
+    var dias = [], resumo = [];
+    for (var i = 0; i < 7; i++) {
+      var iso = somaDias(segunda, i), wd = diaSemana(iso), sess = [];
+      if (dist.forca[wd]) sess.push(dist.forca[wd]);
+      if (dist.B.indexOf(wd) >= 0) sess.push('B');
+      if (i < freq.A) sess.push('A');
+      dias.push({ data: iso, dia: DIAS_PT[wd], sessoes: sess });
+      resumo.push(DIAS_PT[wd] + ': ' + (sess.length ? sess.map(function (s) { return SESSAO_NOME[s]; }).join(' + ') : 'descanso'));
+    }
+    SESSOES.forEach(function (s) {
+      var agendada = dias.some(function (d) { return d.sessoes.indexOf(s) >= 0; });
+      if (agendada && !sel.selecao[s].length) alertas.push({ tipo: 'sessao_sem_exercicios', sessao: s, detalhe: 'A sessão ' + s + ' está na semana, mas a biblioteca não tem exercício ativo para ela.' });
+    });
+
+    var pilaresBib = {}, naSemana = {};
+    base.itens.forEach(function (it) { if (it.passo) pilaresBib[it.pilar] = true; });
+    SESSOES.forEach(function (s) { sel.selecao[s].forEach(function (f) { var it = base.itens.filter(function (x) { return x.familia === f; })[0]; if (it) naSemana[it.pilar] = true; }); });
+    var semExercicio = PILARES_ESPERADOS.filter(function (p) { return !pilaresBib[p]; });
+    semExercicio.forEach(function (p) { alertas.push({ tipo: 'pilar_sem_exercicio', pilar: p, detalhe: 'O pilar "' + p + '" não tem exercício ativo na biblioteca.' }); });
+
+    return {
+      versao: VERSION, segunda: segunda, dias: dias, selecao: sel.selecao, historicoNovo: sel.historicoNovo,
+      resumo: resumo, alertas: alertas, prescricao: base,
+      cobertura: { pilaresNaBiblioteca: Object.keys(pilaresBib), pilaresNaSemana: Object.keys(naSemana), pilaresSemExercicio: semExercicio }
+    };
+  }
+
+  /* plano de UM dia: sessões agendadas + exercícios escolhidos + gate do dia.
+     args = os de planoSemanal + { data, estadoDia } */
+  function planoDeHoje(args) {
+    var cfg = mergeCfg(args.cfg);
+    var sem = planoSemanal(args);
+    var data = args.data || args.dataRef || isoDe(new Date());
+    var dia = sem.dias.filter(function (d) { return d.data === data; })[0] || { data: data, dia: DIAS_PT[diaSemana(data)], sessoes: [] };
+    var gate = gateDoDia(args.estadoDia, cfg);
+    var sessoes = dia.sessoes.map(function (s) {
+      var presc = clone(sem.prescricao);
+      presc.itens = presc.itens.filter(function (i) { return i.sessao === s && sem.selecao[s].indexOf(i.familia) >= 0; })
+        .sort(function (a, b) { return sem.selecao[s].indexOf(a.familia) - sem.selecao[s].indexOf(b.familia); });
+      return aplicarGate(presc, gate, s, cfg);
+    });
+    return { data: data, dia: dia.dia, sessoesDoDia: dia.sessoes, gate: gate, sessoes: sessoes, semana: { segunda: sem.segunda, resumo: sem.resumo, alertas: sem.alertas, cobertura: sem.cobertura, selecao: sem.selecao, historicoNovo: sem.historicoNovo } };
+  }
+
   var Core = {
-    VERSION: VERSION, DEFAULT_CFG: DEFAULT_CFG, GATE_TEXTOS: GATE_TEXTOS, CAMPOS_PERMITIDOS: CAMPOS_PERMITIDOS,
+    VERSION: VERSION, DEFAULT_CFG: DEFAULT_CFG, SESSAO_NOME: SESSAO_NOME,
+    segundaDe: segundaDe, somaDias: somaDias, diaSemana: diaSemana, distribuirSessoes: distribuirSessoes,
+    selecionarSemana: selecionarSemana, planoSemanal: planoSemanal, planoDeHoje: planoDeHoje, GATE_TEXTOS: GATE_TEXTOS, CAMPOS_PERMITIDOS: CAMPOS_PERMITIDOS,
     lsiSym: lsiSym, rotuloLsi: rotuloLsi, avg3: avg3, ladoFraco: ladoFraco,
     fromAppAssessment: fromAppAssessment, factsForTest: factsForTest, scoreAssessment: scoreAssessment,
     evalCondicao: evalCondicao, lintLinguagem: lintLinguagem, renderExplicacao: renderExplicacao,
@@ -510,6 +694,19 @@
           estadoDia: { corHoje: est.corHoje, ultimoRegistro: est.ultimoRegistro, check24Cor: est.check24Cor, lastRun: lastRun, agora: Date.now() }
         });
         rel.sessao = sessao; rel.plano = plano;
+        // Etapa 4: a semana do motor e a sessão que ele colocaria HOJE (só leitura)
+        try {
+          var hojeISO = (typeof root.today === 'function') ? root.today() : new Date().toISOString().slice(0, 10);
+          var dh = planoDeHoje({
+            biblioteca: base.biblioteca, tests: base.tests, regras: base.regras, cfg: base.cfg,
+            avaliacao: avaliacao, mes: est.mes, dataRef: hojeISO, data: hojeISO, historico: {},
+            estadoDia: { corHoje: est.corHoje, ultimoRegistro: est.ultimoRegistro, check24Cor: est.check24Cor, lastRun: lastRun, agora: Date.now() }
+          });
+          rel.semana = { segunda: dh.semana.segunda, resumo: dh.semana.resumo, selecao: dh.semana.selecao,
+            cobertura: dh.semana.cobertura, alertas: dh.semana.alertas.map(function (a) { return a.tipo + (a.pilar ? ':' + a.pilar : '') + (a.sessao ? ':' + a.sessao : ''); }) };
+          rel.hoje = { data: dh.data, dia: dh.dia, sessoesDoMotor: dh.sessoesDoDia, sessaoDoApp: sessao,
+            coincide: dh.sessoesDoDia.indexOf(sessao) >= 0 };
+        } catch (e) { rel.semanaErro = String(e && e.message || e); }
         // comparação com o que o app decide hoje (gv-runlog) — só leitura
         try {
           if (typeof root.deriveForceLevel === 'function') {
