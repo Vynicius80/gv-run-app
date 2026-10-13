@@ -31,7 +31,7 @@
 (function (root) {
   'use strict';
 
-  var VERSION = '0.3.0-shadow';
+  var VERSION = '0.3.1-shadow';
 
   /* ---------------- parâmetros de reserva (iguais ao engine_config) ----------------
      Usados se a leitura do banco falhar. Valores = seeds da Etapa 2. */
@@ -550,9 +550,13 @@
     if (typeof root.openSession === 'function') {
       var _prev = root.openSession;
       root.openSession = function (t) {
-        var ret = _prev.apply(this, arguments);
-        try { if (ligado()) setTimeout(function () { Engine.sombra(t); }, 400); } catch (e) {}
-        return ret;
+        // try/finally: o modo sombra roda mesmo que o openSession original lance erro,
+        // e o erro original continua chegando ao chamador (o motor não engole nem altera nada).
+        try {
+          return _prev.apply(this, arguments);
+        } finally {
+          try { if (ligado()) setTimeout(function () { Engine.sombra(t); }, 400); } catch (e) {}
+        }
       };
     } else if (root.document.getElementById('vSession')) {
       try { console.warn('[GVEngine] openSession não encontrada: carregue gv-engine.js DEPOIS de gv-clinic.js.'); } catch (e) {}
