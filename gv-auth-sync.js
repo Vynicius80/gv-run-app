@@ -188,9 +188,9 @@ function montarTelaLogin(emailSugerido) {
     emailAtual = e;
     $('gv-step1').classList.add('hidden');
     $('gv-step2').classList.remove('hidden');
-    $('gv-sub2').textContent = `Enviamos um código para ${e}. Digite abaixo.`;
+    $('gv-sub2').textContent = `Enviamos um código para ${e}. Use sempre o código do e-mail mais recente: cada novo pedido anula o anterior.`;
     code.value = ''; code.focus && code.focus();
-    diz('Código enviado. Confira também a caixa de spam.', 'ok');
+    diz('Código enviado. Confira também o spam e aguarde ele chegar antes de pedir outro.', 'ok');
     iniciarCooldown(60);
   }
 
@@ -200,7 +200,7 @@ function montarTelaLogin(emailSugerido) {
     confirmBtn.disabled = true; diz('Confirmando...');
     const r = await sb.auth.verifyOtp({ email: emailAtual, token, type: 'email' });
     confirmBtn.disabled = false;
-    if (r && r.error) return diz('Código inválido ou expirado. Confira ou peça um novo.', 'err');
+    if (r && r.error) return diz('Código inválido ou expirado. Use o código do e-mail mais recente (cada novo pedido anula o anterior) ou peça um novo.', 'err');
     const s = r && r.data && r.data.session;
     clearInterval(timerReenvio);
     GVCloud._concluirLogin((s && s.user && s.user.email) || emailAtual, false);
