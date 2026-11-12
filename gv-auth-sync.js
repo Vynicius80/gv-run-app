@@ -26,7 +26,7 @@
 const GV_CONFIG = {
   SUPABASE_URL:  'https://kzgdlsstrffiubzkvqeo.supabase.co',
   SUPABASE_ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Z2Rsc3N0cmZmaXViemt2cWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTk1NjksImV4cCI6MjEwMDU3NTU2OX0._1O1PSe94zPmtqfwc0PxpcMTf0Fl02QIgIAbAzaMmu4',
-  AUTH_MODE: 'compat',            // 'compat' (transição) | 'strict'
+  AUTH_MODE: 'strict',            // 'compat' (transição) | 'strict'
 };
 
 const GV_SEM_CHAVES = /COLE_AQUI/.test(GV_CONFIG.SUPABASE_URL + GV_CONFIG.SUPABASE_ANON);
